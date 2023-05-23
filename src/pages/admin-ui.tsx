@@ -112,7 +112,7 @@ handleDeleteForMainCheckbox() {
         mainCheckbox.checked = false;
 }
 
-handleContent( userId: number ) {
+handleContent(userId: number) {
     this.setState({ editStatus: false });
     const input = document.getElementsByClassName('input');
     const length = userId * 4;
@@ -161,14 +161,17 @@ pagination(pages: number) {
 }
 
 goToTheInitialThreePage() {
-   this.setState({ pageNumberStart: 1, pageNumberEnd: 3 })
+   this.setState({ pageNumberStart: 1, pageNumberEnd: 3, currentPage: 0 })
 }
 
 goToTheLastThreePage() {
-   this.setState({ pageNumberStart: this.props.totalPage - 2, pageNumberEnd: this.props.totalPage })
+   this.setState({ pageNumberStart: this.props.totalPage - 2, pageNumberEnd: this.props.totalPage, currentPage: this.props.totalPage - 1})
 }
 
 goToThePreviousTwoPagesBeforeFirstPage() {
+    if(this.state.pageNumberStart === 1) {
+        return;
+    }
   this.setState({ pageNumberEnd: this.state.pageNumberStart })
   this.setState({ pageNumberStart: this.state.pageNumberStart - 2 })
 }
