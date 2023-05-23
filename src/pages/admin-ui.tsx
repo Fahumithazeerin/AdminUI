@@ -15,7 +15,8 @@ interface Data {
 
 interface AdminStateProps {
     apiData: [],
-    isLoding: boolean
+    isLoding: boolean,
+    totalPage: number
 }
 
 interface AdminDispatchProps {
@@ -28,7 +29,11 @@ interface IOwnStateProps {
     checkBox: boolean,
     deleteCount: number,
     editStatus: boolean,
-    currentUser: number
+    currentUser: number,
+    currentPage: number,
+    listofUserCurrentPage: any,
+    pageNumberStart: number,
+    pageNumberEnd: number
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
@@ -37,9 +42,10 @@ const mapDispatchToProps = (dispatch: any) => ({
     deleteMaincheckboxSelectedUser: (userId: number) => dispatch(deleteSelectedUserMainCheckBox(userId))
 })
 
-const mapStateToProps = (state: {isLoding: boolean; data: []}) : AdminStateProps => ({
+const mapStateToProps = (state: {isLoding: boolean; data: []; totalPage: number }) : AdminStateProps => ({
     isLoding: state.isLoding,
     apiData: state.data,
+    totalPage: state.totalPage
 })
 
 type Iprops = AdminStateProps & AdminDispatchProps
@@ -51,13 +57,20 @@ class Admin extends React.Component<Iprops, IOwnStateProps> {
             checkBox: false,
             deleteCount: 0,
             editStatus: false,
-            currentUser: 0
+            currentUser: 0,
+            currentPage: 0,
+            listofUserCurrentPage: [],
+            pageNumberStart: 1,
+            pageNumberEnd: 3
+
         }
     }
-  async componentDidMount(){
-        await this.props.init();
-         console.log(this.props.apiData);
+    
+    async componentDidMount(){
+         await this.props.init();
     }
+
+
 handleSelectAndDeSelectAll() { 
     const mainCheckbox = document.getElementById('main-checkbox') as HTMLInputElement;
     const subCheckbox = document.getElementsByClassName('sub-checkbox');
@@ -92,29 +105,31 @@ handleDelete(userId: number) {
 
 handleDeleteForMainCheckbox() {
         for(let j = 0; j < 10; j++) {
-           this.props.deleteMaincheckboxSelectedUser(this.state.deleteCount+1);
-           this.setState({deleteCount: this.state.deleteCount+1})
+           this.props.deleteMaincheckboxSelectedUser( this.state.deleteCount+1 );
+           this.setState({ deleteCount: this.state.deleteCount+1 })
         }
         const mainCheckbox = document.getElementById('main-checkbox') as HTMLInputElement;
         mainCheckbox.checked = false;
 }
 
 handleContent(userId: number) {
+    this.setState({ editStatus: false });
     const input = document.getElementsByClassName('input');
     const length = userId * 4;
     if(!this.state.editStatus) {
-       this.setState({editStatus: true, currentUser: userId})
-       for(let i = length-4 ; i < length; i++) {
+       this.setState({ editStatus: true, currentUser: userId })
+       for(let i = length-4; i < length; i++) {
          const readonly = input[i] as HTMLInputElement;
          readonly.readOnly = false;
     } 
   } else{
-    for(let i = length-4 ; i < length; i++) {
+    for(let i = length-4; i < length; i++) {
         const readonly = input[i] as HTMLInputElement;
         readonly.readOnly = true;
    } 
   }
 }
+
 cal(userId: number) {
     if(this.state.currentUser === userId) {
         return true;
@@ -122,9 +137,84 @@ cal(userId: number) {
         return false;
     }
 }
-    render() {
+
+generateArrayofPages() {
+    const pages : number[] = [];
+    for(let i = 0; i < this.props.totalPage; i++) {
+        pages[i] = i + 1
+     }
+     return pages;
+}
+
+pagination(pages: number) {
+   let lastPageNumber = pages * 2;
+    if (this.props.totalPage > 3 ) {
+        if(this.state.pageNumberEnd % 3 === 0 && this.state.pageNumberEnd < this.props.totalPage ) {
+            this.setState({ pageNumberStart: pages })
+            if(lastPageNumber >= this.props.totalPage) {
+                this.setState({ pageNumberEnd: this.props.totalPage })
+            } else{
+                this.setState({ pageNumberEnd: lastPageNumber }) 
+            }
+        }
+    } 
+}
+
+goToTheInitialThreePage() {
+   this.setState({ pageNumberStart: 1, pageNumberEnd: 3, currentPage: 0 })
+}
+
+goToTheLastThreePage() {
+   this.setState({ pageNumberStart: this.props.totalPage - 2, pageNumberEnd: this.props.totalPage, currentPage: this.props.totalPage - 1})
+}
+
+goToThePreviousTwoPagesBeforeFirstPage() {
+    if(this.state.pageNumberStart === 1) {
+        return;
+    }
+  this.setState({ pageNumberEnd: this.state.pageNumberStart })
+  this.setState({ pageNumberStart: this.state.pageNumberStart - 2 })
+}
+
+goToTheNextTwoPagesAfterLastPage() {
+    if(this.state.pageNumberEnd === this.props.totalPage) {
+        return;
+    }
+
+    let page = this.state.pageNumberEnd + 2;
+    if(page >= this.props.totalPage) {
+      page = this.props.totalPage
+    }
+
+    this.setState({ pageNumberStart: this.state.pageNumberEnd,pageNumberEnd: page })
+}
+
+showFrontThreeDots() {
+    if( this.state.pageNumberStart >= 3 ) {
+        return true
+    } else {
+        return false
+    }
+}
+
+showEndThreeDots() {
+    if( this.state.pageNumberEnd === this.props.totalPage ) {
+        return false
+    } else {
+        return true
+    }
+}
+
+decide(pages: number) {
+    if (pages % 3 === 0) {
+        this.pagination(pages);
+    } 
+    this.setState({ currentPage: pages-1 });
+}
+   
+render() {
         return (
-        
+           <>
             <div className='admin-wrapper'>
                 <div>
                 <input type='search' className='search-box'></input>
@@ -141,7 +231,7 @@ cal(userId: number) {
                         </tr>
                     </thead>
                     <tbody>
-                        {this.props.apiData? this.props.apiData.map((item: Data) => (
+                        {this.props.apiData.filter((item: Data) => item.id >= (this.state.currentPage*10)+1 && item.id <= (this.state.currentPage+1)*10).map((item: Data) => (
                             <tr key={item.id} className="row">
                                 <td><input type='checkbox' className='sub-checkbox'></input></td>
                                 <td><input type='text' className='input' defaultValue={item.id}  readOnly></input></td>
@@ -156,7 +246,7 @@ cal(userId: number) {
                                             this.handleContent(item.id)
                                            }
                                         }
-                                    /> : <button onClick={()=>{this.setState({editStatus: false}); this.handleContent(item.id)}}>Save</button>
+                                    /> : <button onClick={()=>{ this.handleContent(item.id)}}>Save</button>
                                     }
                                     <FontAwesomeIcon 
                                         icon={faTrashCan}
@@ -165,11 +255,36 @@ cal(userId: number) {
                                     />
                                 </td>
                             </tr>
-                        )): null}
+                        ))}
                     </tbody>
                 </table>
                 <button onClick={()=>this.handleDeleteForMainCheckbox()}>Delete</button>
             </div>
+            <table>
+                <tbody>
+                  <tr>
+                     <td><button onClick={()=> this.goToTheInitialThreePage()}>  {'<<'}</button></td>
+                     <td><button onClick={()=> this.goToThePreviousTwoPagesBeforeFirstPage()}> {'<'}</button></td>
+                     { this.showFrontThreeDots() && <td>...</td> }
+                     {
+                        this.generateArrayofPages()
+                        .filter((page: number)=> page>= this.state.pageNumberStart && page<= this.state.pageNumberEnd)
+                        .map((pages: number) => ( 
+                          <td> 
+                            <button onClick = {() => {this.decide(pages)} }>
+                              {pages}
+                            </button>
+                          </td>
+                        ))
+                    }
+                      { this.showEndThreeDots() && <td>...</td> }
+                     <td><button onClick={()=> this.goToTheNextTwoPagesAfterLastPage()}>  {'>'}</button></td>
+                     <td><button onClick={()=> this.goToTheLastThreePage()}> {'>>'}</button></td>
+                  </tr>
+                </tbody>
+            </table>
+            </>
+            
         );
         
     }
