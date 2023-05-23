@@ -4,11 +4,13 @@ export const initailState: {
     loding: Boolean,
     data: [],
     error: String | null
+    totalPage: number
 
 } = {
     loding: false,
     data: [],
-    error: null
+    error: null,
+    totalPage: 0
 };
 
 const reducer =  (state = initailState, action: any) => {
@@ -22,7 +24,8 @@ const reducer =  (state = initailState, action: any) => {
             return {
               ...state,
                 loding: false,
-                data: action.payload
+                data: action.payload,
+                totalPage: Math.ceil(state.data.length / 10) 
             };
         case FETCH_DATA_FAILURE:
             return {
